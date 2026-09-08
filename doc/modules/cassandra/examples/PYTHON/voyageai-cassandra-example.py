@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
 """
-VoyageAI + Apache Cassandra: Comprehensive Vector Search Integration
+VoyageAI by MongoDB + Apache Cassandra: Comprehensive Vector Search Integration
 
-This comprehensive example demonstrates the complete VoyageAI integration with
-Cassandra, combining multiple advanced features in one production-ready guide:
+This comprehensive example demonstrates the complete VoyageAI by MongoDB integration
+with Cassandra, combining multiple advanced features in one production-ready guide:
 
-1. Standard text embeddings (voyage-3.5, voyage-3.5-lite)
+1. Standard text embeddings (voyage-4, voyage-4-lite)
 2. Token-aware batching for large datasets
 3. Reranking with rerank-2.5 for two-stage retrieval
 4. Hybrid search (vector + keyword filters + reranking)
+
+Note: VoyageAI is now part of MongoDB. The API, `voyageai` Python package, and
+model names are unchanged.
 
 Use Case: E-commerce product search with 100+ products
 
 Prerequisites:
 - Python 3.8+
 - pip install voyageai cassandra-driver
-- VoyageAI API key (set as VOYAGE_API_KEY environment variable)
+- VoyageAI by MongoDB API key (set as VOYAGE_API_KEY environment variable)
 - Apache Cassandra 5.0+ cluster running (default: localhost:9042)
 
 Author: Apache Cassandra Documentation Team
@@ -45,12 +48,12 @@ except ImportError as e:
 # ============================================================================
 
 class Config:
-    """Configuration for VoyageAI and Cassandra connection."""
+    """Configuration for VoyageAI by MongoDB and Cassandra connection."""
 
-    # VoyageAI settings
+    # VoyageAI by MongoDB settings
     VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
-    EMBEDDING_MODEL = "voyage-3.5-lite"  # Options: voyage-3.5, voyage-3.5-lite
-    RERANK_MODEL = "rerank-2.5"  # Options: rerank-2.5, rerank-2.5-lite
+    EMBEDDING_MODEL = "voyage-4-lite"  # Options: voyage-4, voyage-4-lite, voyage-4-large
+    RERANK_MODEL = "rerank-2.5"  # Options: rerank-2.5, rerank-2.5-lite, rerank-3, rerank-3-lite
     EMBEDDING_DIMENSION = 1024  # Options: 256, 512, 1024, 2048
 
     # Cassandra settings
@@ -78,19 +81,25 @@ class Config:
 # SECTION 2: TOKEN-AWARE BATCHING
 # ============================================================================
 
-# Token limits for VoyageAI models (per batch)
+# Total tokens per request for VoyageAI by MongoDB models
 VOYAGE_TOKEN_LIMITS = {
+    # Current generation
+    "voyage-4-lite": 1_000_000,
+    "voyage-4": 320_000,
+    "voyage-4-large": 120_000,
+    "voyage-context-4": 120_000,
+    "voyage-multimodal-3.5": 32_000,
+    # Legacy (still accessible)
     "voyage-3.5-lite": 1_000_000,
     "voyage-3.5": 320_000,
-    "voyage-context-3": 32_000,
+    "voyage-context-3": 120_000,
     "voyage-multimodal-3": 32_000,
-    "voyage-multimodal-3.5": 32_000,
 }
 
 
 class TokenAwareBatcher:
     """
-    Token-aware batching utility for VoyageAI embeddings.
+    Token-aware batching utility for VoyageAI by MongoDB embeddings.
 
     This class implements intelligent batching based on actual token counts
     rather than simple document counts, preventing API errors from exceeding
@@ -102,7 +111,7 @@ class TokenAwareBatcher:
         Initialize token-aware batcher.
 
         Args:
-            client: VoyageAI client instance
+            client: VoyageAI by MongoDB client instance
             model: Model name (determines token limit)
         """
         self.client = client
@@ -223,23 +232,23 @@ class TokenAwareBatcher:
 
 class VoyageAIClient:
     """
-    Comprehensive VoyageAI client with embedding and reranking support.
+    Comprehensive VoyageAI by MongoDB client with embedding and reranking support.
     """
 
     def __init__(self, api_key: str):
         """
-        Initialize VoyageAI client.
+        Initialize VoyageAI by MongoDB client.
 
         Args:
-            api_key: VoyageAI API key
+            api_key: VoyageAI by MongoDB API key
         """
         self.client = voyageai.Client(api_key=api_key)
-        print(f"✓ VoyageAI client initialized")
+        print(f"✓ VoyageAI by MongoDB client initialized")
 
     def embed_texts(
         self,
         texts: List[str],
-        model: str = "voyage-3.5-lite",
+        model: str = "voyage-4-lite",
         input_type: str = "document",
         dimension: int = 1024
     ) -> List[List[float]]:
@@ -270,7 +279,7 @@ class VoyageAIClient:
     def embed_single(
         self,
         text: str,
-        model: str = "voyage-3.5-lite",
+        model: str = "voyage-4-lite",
         input_type: str = "query",
         dimension: int = 1024
     ) -> List[float]:
@@ -931,8 +940,8 @@ def example_c_reranking(
         stage1_time = (time.time() - stage1_start) * 1000
         print(f"    Retrieved {len(candidates)} candidates in {stage1_time:.2f}ms")
 
-        # Stage 2: Rerank with VoyageAI
-        print("  Stage 2: Reranking with VoyageAI rerank-2.5...")
+        # Stage 2: Rerank with VoyageAI by MongoDB
+        print("  Stage 2: Reranking with VoyageAI by MongoDB rerank-2.5...")
         stage2_start = time.time()
 
         documents = [c["description"] for c in candidates]
@@ -1098,10 +1107,10 @@ def example_d_hybrid_search(
 # ============================================================================
 
 def main():
-    """Main application demonstrating VoyageAI + Cassandra integration."""
+    """Main application demonstrating VoyageAI by MongoDB + Cassandra integration."""
 
     print("\n" + "="*80)
-    print("VoyageAI + Apache Cassandra: Comprehensive Integration")
+    print("VoyageAI by MongoDB + Apache Cassandra: Comprehensive Integration")
     print("="*80 + "\n")
 
     # Validate configuration
@@ -1171,7 +1180,7 @@ def main():
         print("\nKey Takeaways:")
         print("="*80)
         print("\n1. BASIC INTEGRATION")
-        print("   ✓ VoyageAI generates high-quality embeddings")
+        print("   ✓ VoyageAI by MongoDB generates high-quality embeddings")
         print("   ✓ Cassandra stores and searches vectors efficiently")
         print("   ✓ SAI indexes enable fast ANN search")
 
