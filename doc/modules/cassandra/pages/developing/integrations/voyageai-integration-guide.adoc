@@ -1,16 +1,16 @@
-= VoyageAI Integration Guide for Apache Cassandra Vector Search
+= VoyageAI by MongoDB Integration Guide for Apache Cassandra Vector Search
 :page-layout: basic
-:description: Complete guide to integrating VoyageAI embeddings with Apache Cassandra vector search capabilities.
+:description: Complete guide to integrating VoyageAI by MongoDB embeddings with Apache Cassandra vector search capabilities.
 
-Apache Cassandra's vector search capabilities follow a Bring Your Own Embeddings (BYOE) model, allowing you to use any embedding generation service. This guide demonstrates how to integrate VoyageAI's state-of-the-art embedding models with Cassandra for powerful semantic search applications.
+Apache Cassandra's vector search capabilities follow a Bring Your Own Embeddings (BYOE) model, allowing you to use any embedding generation service. This guide demonstrates how to integrate VoyageAI by MongoDB's state-of-the-art embedding models with Cassandra for powerful semantic search applications.
 
 == Overview
 
-VoyageAI provides high-quality text embeddings optimized for retrieval and semantic search. Combined with Cassandra's SAI (Storage Attached Index) vector search, you can build scalable, low-latency similarity search applications.
+VoyageAI by MongoDB provides high-quality text embeddings optimized for retrieval and semantic search. Combined with Cassandra's SAI (Storage Attached Index) vector search, you can build scalable, low-latency similarity search applications.
 
-=== Why VoyageAI + Cassandra?
+=== Why VoyageAI by MongoDB + Cassandra?
 
-* **High-Quality Embeddings**: VoyageAI's models (voyage-3.5, voyage-3.5-lite) are optimized for retrieval tasks
+* **High-Quality Embeddings**: VoyageAI by MongoDB's models (voyage-4-large, voyage-4, voyage-4-lite) are optimized for retrieval tasks
 * **Flexible Dimensions**: Support for 256, 512, 1024, and 2048 dimensional embeddings
 * **Scalable Storage**: Cassandra handles billions of vectors with horizontal scaling
 * **Low-Latency Search**: SAI indexes provide fast Approximate Nearest Neighbor (ANN) search
@@ -22,7 +22,7 @@ Before starting, ensure you have:
 
 * Apache Cassandra 5.0+ with vector search support
 * Python 3.8 or higher
-* VoyageAI API key (obtain from https://dash.voyageai.com/api-keys)
+* VoyageAI by MongoDB API key (obtain from https://dash.voyageai.com/api-keys)
 * Basic familiarity with CQL (Cassandra Query Language)
 
 == Installation and Setup
@@ -34,11 +34,11 @@ Before starting, ensure you have:
 pip install voyageai cassandra-driver
 ----
 
-The `voyageai` package provides the official VoyageAI Python SDK, while `cassandra-driver` is the DataStax Python driver for Apache Cassandra.
+The `voyageai` package provides the official VoyageAI by MongoDB Python SDK, while `cassandra-driver` is the DataStax Python driver for Apache Cassandra.
 
-=== Configure VoyageAI API Key
+=== Configure VoyageAI by MongoDB API Key
 
-Set your VoyageAI API key as an environment variable:
+Set your VoyageAI by MongoDB API key as an environment variable:
 
 [source,bash]
 ----
@@ -63,7 +63,7 @@ The integration follows this workflow:
 [source,text]
 ----
 1. Application generates text/content
-2. VoyageAI API converts to embeddings (float vectors)
+2. VoyageAI by MongoDB API converts to embeddings (float vectors)
 3. Cassandra stores vectors alongside original data
 4. SAI indexes enable fast similarity search
 5. Queries return semantically similar results
@@ -71,7 +71,7 @@ The integration follows this workflow:
 
 == Step-by-Step Integration
 
-=== Step 1: Initialize VoyageAI Client
+=== Step 1: Initialize VoyageAI by MongoDB Client
 
 [source,python]
 ----
@@ -82,7 +82,7 @@ import voyageai
 vo = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 
 # Choose your model
-MODEL = "voyage-3.5-lite"  # Options: voyage-3.5, voyage-3.5-lite
+MODEL = "voyage-4-lite"  # Options: voyage-4-large, voyage-4, voyage-4-lite
 DIMENSION = 1024  # Options: 256, 512, 1024, 2048
 ----
 
@@ -105,14 +105,14 @@ total_tokens = result.total_tokens  # Token count for billing
 
 ==== Batch Processing
 
-VoyageAI supports batch embedding generation with these limits:
+VoyageAI by MongoDB supports batch embedding generation with these limits:
 
 * Maximum 1,000 texts per request
 * Token limits vary by model:
-** voyage-3.5-lite: 1M tokens
-** voyage-3.5: 320K tokens
-** voyage-context-3: 32K tokens
-** voyage-multimodal-3: 32K tokens
+** voyage-4-lite: 1M tokens
+** voyage-4: 320K tokens
+** voyage-4-large: 120K tokens
+** voyage-context-4: 120K tokens
 ** voyage-multimodal-3.5: 32K tokens
 
 ===== Simple Count-Based Batching
@@ -146,12 +146,13 @@ For production use, implement token-aware batching to prevent API errors and max
 import voyageai
 from typing import List, Generator
 
-# Token limits for VoyageAI models
+# Total tokens per request for VoyageAI by MongoDB models
 VOYAGE_TOKEN_LIMITS = {
-    "voyage-3.5-lite": 1_000_000,
-    "voyage-3.5": 320_000,
-    "voyage-context-3": 32_000,
-    "voyage-multimodal-3": 32_000,
+    "voyage-4-lite": 1_000_000,
+    "voyage-4": 320_000,
+    "voyage-4-large": 120_000,
+    "voyage-code-4": 120_000,
+    "voyage-context-4": 120_000,
     "voyage-multimodal-3.5": 32_000,
 }
 
@@ -213,7 +214,7 @@ class TokenAwareBatchProcessor:
 
 # Usage example
 vo = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
-processor = TokenAwareBatchProcessor(vo, "voyage-3.5")
+processor = TokenAwareBatchProcessor(vo, "voyage-4")
 
 # Process documents with automatic token-aware batching
 documents = ["Document 1 text...", "Document 2 text...", ...]  # Any number of documents
@@ -225,7 +226,7 @@ embeddings = processor.embed_with_token_batching(documents, input_type="document
 * **Prevents API Errors**: Automatically respects model token limits
 * **Maximizes Utilization**: Creates largest possible batches without exceeding limits
 * **Memory Efficient**: Uses generators to process batches incrementally
-* **Model Agnostic**: Works across all VoyageAI models
+* **Model Agnostic**: Works across all VoyageAI by MongoDB models
 * **Production Ready**: Handles edge cases and variable document sizes
 
 **How It Works:**
@@ -279,7 +280,7 @@ CREATE TABLE IF NOT EXISTS products (
 );
 ----
 
-The `VECTOR<FLOAT, dimension>` type stores floating-point vectors. Ensure the dimension matches your VoyageAI output dimension.
+The `VECTOR<FLOAT, dimension>` type stores floating-point vectors. Ensure the dimension matches your VoyageAI by MongoDB output dimension.
 
 ==== Create SAI Vector Index
 
@@ -322,7 +323,7 @@ product = {
 # Generate embedding
 embedding_result = vo.embed(
     texts=[product["description"]],
-    model="voyage-3.5-lite",
+    model="voyage-4-lite",
     input_type="document",
     output_dimension=1024
 )
@@ -360,7 +361,7 @@ session.execute(
 query_text = "noise cancelling headphones for music"
 query_result = vo.embed(
     texts=[query_text],
-    model="voyage-3.5-lite",
+    model="voyage-4-lite",
     input_type="query",  # Use "query" for search queries
     output_dimension=1024
 )
@@ -417,15 +418,25 @@ Set `input_type="document"` when embedding content to be stored, and `input_type
 |===
 |Model |Use Case |Dimension |Performance
 
-|voyage-3.5-lite
+|voyage-4-lite
 |Fast, cost-effective text searches
-|1024 (default)
+|1024 (default), 256, 512, 2048
 |Best cost/performance
 
-|voyage-3.5
+|voyage-4
 |Balanced quality and speed for text
-|1024 (default)
+|1024 (default), 256, 512, 2048
 |High quality
+
+|voyage-4-large
+|Highest retrieval quality for text
+|1024 (default), 256, 512, 2048
+|Best quality
+
+|voyage-code-4
+|Code retrieval and search
+|1024 (default), 256, 512, 2048
+|Best for code
 
 |voyage-multimodal-3
 |Text + Image embeddings (cross-modal)
@@ -437,7 +448,7 @@ Set `input_type="document"` when embedding content to be stored, and `input_type
 |256, 512, 1024, 2048
 |Latest multimodal
 
-|voyage-context-3
+|voyage-context-4
 |Contextual chunk embeddings for RAG
 |1024 (default)
 |Best for long documents
@@ -479,11 +490,11 @@ def generate_embeddings_with_retry(texts, model):
 
 . **Match Dimensions Exactly**
 +
-Ensure your `VECTOR<FLOAT, dimension>` definition matches the VoyageAI output dimension exactly.
+Ensure your `VECTOR<FLOAT, dimension>` definition matches the VoyageAI by MongoDB output dimension exactly.
 
 . **Choose Appropriate Similarity Function**
 +
-* Use `COSINE` for VoyageAI embeddings (they are normalized)
+* Use `COSINE` for VoyageAI by MongoDB embeddings (they are normalized)
 * Use `DOT_PRODUCT` if you're using normalized vectors and want faster computation
 * Use `EUCLIDEAN` only if specifically required by your use case
 
@@ -524,7 +535,7 @@ LIMIT 10
 
 . **Monitor API Usage**
 +
-Track VoyageAI token consumption and costs using their dashboard.
+Track VoyageAI by MongoDB token consumption and costs using their dashboard.
 
 . **Implement Error Handling**
 +
@@ -540,7 +551,7 @@ except voyageai.error.RateLimitError:
     result = vo.embed(texts=texts, model=MODEL)
 except voyageai.error.APIError as e:
     # Log error and handle gracefully
-    logger.error(f"VoyageAI API error: {e}")
+    logger.error(f"VoyageAI by MongoDB API error: {e}")
 ----
 
 . **Scale Cassandra Appropriately**
@@ -553,7 +564,7 @@ except voyageai.error.APIError as e:
 
 === Embedding Generation Performance
 
-* VoyageAI API latency: ~100-500ms depending on batch size
+* VoyageAI by MongoDB API latency: ~100-500ms depending on batch size
 * Recommended batch size: 32-128 texts for optimal throughput
 * Concurrent requests: Use connection pooling for parallel processing
 
@@ -571,7 +582,7 @@ Consider using lower dimensions (512 or 256) if 1024 is unnecessary:
 +
 [source,python]
 ----
-result = vo.embed(texts=texts, model="voyage-3.5-lite", output_dimension=512)
+result = vo.embed(texts=texts, model="voyage-4-lite", output_dimension=512)
 ----
 
 . **Parallel Processing**
@@ -614,7 +625,7 @@ cluster = Cluster(
 
 *Problem*: Vector dimension doesn't match table definition.
 
-*Solution*: Ensure VoyageAI `output_dimension` matches your `VECTOR<FLOAT, N>` definition:
+*Solution*: Ensure VoyageAI by MongoDB `output_dimension` matches your `VECTOR<FLOAT, N>` definition:
 
 [source,python]
 ----
@@ -626,7 +637,7 @@ result = vo.embed(texts=texts, output_dimension=DIMENSION)
 # description_vector VECTOR<FLOAT, 1024>
 ----
 
-==== Issue: VoyageAI rate limit errors
+==== Issue: VoyageAI by MongoDB rate limit errors
 
 *Problem*: Exceeding API rate limits.
 
@@ -689,13 +700,13 @@ os.environ['VOYAGE_API_KEY'] = 'your-api-key-here'
 
 === Multimodal Embeddings with voyage-multimodal-3 / voyage-multimodal-3.5
 
-VoyageAI's multimodal models enable embedding text, images, and video in the same vector space, enabling powerful cross-modal search capabilities.
+VoyageAI by MongoDB's multimodal models enable embedding text, images, and video in the same vector space, enabling powerful cross-modal search capabilities.
 
 ==== Model Comparison
 
 [cols="1,2,2"]
 |===
-|Feature |voyage-multimodal-3 |voyage-multimodal-3.5 (Preview)
+|Feature |voyage-multimodal-3 (Legacy) |voyage-multimodal-3.5 (Current)
 
 |**Modalities**
 |Text + Images
@@ -718,8 +729,8 @@ VoyageAI's multimodal models enable embedding text, images, and video in the sam
 |20MB (requires voyageai >= 0.3.6)
 
 |**Status**
-|Stable
-|Preview
+|Legacy
+|Current
 |===
 
 ==== Model Capabilities
@@ -780,7 +791,7 @@ legacy_embedding = legacy_result.embeddings[0]  # Always 1024-dim
 
 ==== Image Input Formats
 
-VoyageAI supports two primary image input methods:
+VoyageAI by MongoDB supports two primary image input methods:
 
 1. **PIL Image Objects** (Recommended for local images)
 +
@@ -934,9 +945,9 @@ Use WHERE clauses to filter results by modality when needed.
 
 For complete examples, see: `examples/PYTHON/voyageai-multimodal-example.py`
 
-=== Contextual Embeddings with voyage-context-3
+=== Contextual Embeddings with voyage-context-4
 
-VoyageAI's `voyage-context-3` model generates contextual chunk embeddings that encode both local chunk details and global document context, significantly improving retrieval accuracy for RAG applications.
+VoyageAI by MongoDB's `voyage-context-4` model generates contextual chunk embeddings that encode both local chunk details and global document context, significantly improving retrieval accuracy for RAG applications.
 
 ==== Model Capabilities
 
@@ -944,6 +955,7 @@ VoyageAI's `voyage-context-3` model generates contextual chunk embeddings that e
 * **Improved Disambiguation**: Better handling of chunks that need surrounding context
 * **RAG Optimization**: Designed as drop-in replacement for existing pipelines
 * **Flexible Dimensions**: 256, 512, 1024 (default), 2048
+* **Server-Side Auto Chunking**: Pass full documents (flat `list[str]`) with `enable_auto_chunking=True` and `chunk_size` up to 32,000 tokens
 * **Batch Limits**: Max 1,000 inputs, 120K total tokens, 16K total chunks
 
 ==== Python API Usage
@@ -954,24 +966,26 @@ import voyageai
 
 vo = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 
-# Document with multiple chunks
-document_chunks = [
-    "Apache Cassandra is a distributed NoSQL database.",
-    "It uses a ring architecture for data distribution.",
-    "Replication is configurable per keyspace.",
+# Full documents - Voyage splits each one into chunks server-side
+documents = [
+    "Apache Cassandra is a distributed NoSQL database. "
+    "It uses a ring architecture for data distribution. "
+    "Replication is configurable per keyspace. "
     "The peer-to-peer design eliminates single points of failure."
 ]
 
-# Generate contextual embeddings
-# All chunks share context from the same document
+# Generate contextual embeddings with server-side auto chunking
 result = vo.contextualized_embed(
-    inputs=[document_chunks],  # List of lists - one doc with chunks
-    model="voyage-context-3",
+    inputs=documents,           # flat list[str] of full-document strings
+    model="voyage-context-4",
     input_type="document",
-    output_dimension=1024
+    output_dimension=1024,
+    enable_auto_chunking=True,  # split each document server-side
+    chunk_size=32000            # target chunk size in tokens (max 32000)
 )
 
-# Extract embeddings
+# Auto chunking returns the generated chunk texts + their embeddings
+chunk_texts = result.results[0].chunk_texts
 contextual_embeddings = result.results[0].embeddings
 # Each embedding encodes its chunk + global document context
 ----
@@ -984,8 +998,8 @@ contextual_embeddings = result.results[0].embeddings
 ----
 # Each chunk embedded independently (no context sharing)
 result = vo.embed(
-    texts=document_chunks,
-    model="voyage-3.5",
+    texts=chunk_texts,
+    model="voyage-4",
     input_type="document"
 )
 standard_embeddings = result.embeddings
@@ -995,11 +1009,13 @@ standard_embeddings = result.embeddings
 
 [source,python]
 ----
-# Chunks embedded with shared document context
+# Full document embedded with shared context via auto chunking
 result = vo.contextualized_embed(
-    inputs=[document_chunks],  # Note: List of lists
-    model="voyage-context-3",
-    input_type="document"
+    inputs=documents,           # flat list[str] of full-document strings
+    model="voyage-context-4",
+    input_type="document",
+    enable_auto_chunking=True,
+    chunk_size=32000
 )
 contextual_embeddings = result.results[0].embeddings
 ----
@@ -1035,18 +1051,20 @@ USING 'StorageAttachedIndex';
 ----
 # 1. Document ingestion with contextual embeddings
 def ingest_document(doc_id, doc_title, full_text):
-    # Chunk the document
-    chunks = chunk_document(full_text, chunk_size=400)
-
-    # Generate contextual embeddings for all chunks
+    # Pass the full document; Voyage auto-chunks it server-side
     result = vo.contextualized_embed(
-        inputs=[chunks],
-        model="voyage-context-3",
-        input_type="document"
+        inputs=[full_text],         # flat list[str] of full-document strings
+        model="voyage-context-4",
+        input_type="document",
+        enable_auto_chunking=True,
+        chunk_size=32000
     )
 
-    # Store chunks with embeddings
-    for i, (chunk_text, embedding) in enumerate(zip(chunks, result.results[0].embeddings)):
+    # Store the backend-generated chunks with their embeddings
+    doc_result = result.results[0]
+    for i, (chunk_text, embedding) in enumerate(
+        zip(doc_result.chunk_texts, doc_result.embeddings)
+    ):
         session.execute(
             insert_query,
             (uuid.uuid4(), doc_id, doc_title, chunk_text, i, embedding, datetime.utcnow())
@@ -1054,10 +1072,10 @@ def ingest_document(doc_id, doc_title, full_text):
 
 # 2. Query with contextual embedding
 def search_documents(query_text, limit=5):
-    # Embed query with context
+    # Embed query with context (flat list[str], no auto chunking for queries)
     query_result = vo.contextualized_embed(
-        inputs=[[query_text]],
-        model="voyage-context-3",
+        inputs=[query_text],
+        model="voyage-context-4",
         input_type="query"
     )
     query_vector = query_result.results[0].embeddings[0]
@@ -1075,14 +1093,14 @@ def search_documents(query_text, limit=5):
 
 ==== When to Use Contextual Embeddings
 
-Use `voyage-context-3` when:
+Use `voyage-context-4` when:
 
 * **Long Documents**: Books, research papers, technical documentation
 * **Ambiguous Chunks**: Content that needs surrounding context
 * **Improved Precision**: When standard embeddings lack context
 * **RAG Applications**: Question-answering over document collections
 
-Continue using standard `voyage-3.5` when:
+Continue using standard `voyage-4` when:
 
 * **Independent Items**: Product descriptions, social media posts
 * **Short Content**: Tweets, titles, standalone sentences
@@ -1090,52 +1108,56 @@ Continue using standard `voyage-3.5` when:
 
 ==== Best Practices for Contextual Embeddings
 
-. **Chunk Grouping**
+. **Prefer Server-Side Auto Chunking**
 +
-Pass all chunks from the same document together:
+Pass full documents as a flat `list[str]` and let Voyage chunk them:
 +
 [source,python]
 ----
-# Correct: All chunks from doc1 together, all from doc2 together
+# Correct: one full-document string per list entry
 inputs = [
-    ["doc1_chunk1", "doc1_chunk2", "doc1_chunk3"],  # Document 1
-    ["doc2_chunk1", "doc2_chunk2", "doc2_chunk3"]   # Document 2
+    "Full text of document 1 ...",  # Document 1
+    "Full text of document 2 ..."   # Document 2
 ]
+result = vo.contextualized_embed(
+    inputs=inputs,
+    model="voyage-context-4",
+    input_type="document",
+    enable_auto_chunking=True,
+    chunk_size=32000
+)
 ----
 
-. **Maintain Chunk Order**
+. **Store the Returned Chunk Texts**
 +
-Keep chunks in sequential order for optimal context encoding.
+With auto chunking, read `result.results[i].chunk_texts` to persist each
+backend-generated chunk alongside its embedding.
 
-. **Avoid Overlapping Chunks**
+. **Tune chunk_size**
 +
-Unlike standard chunking, don't create overlapping chunks with contextual embeddings.
-
-. **Optimal Chunk Size**
-+
-* Recommended: 200-500 tokens per chunk
-* Balance between granularity and context
+* `chunk_size` is a target in tokens and must not exceed 32,000
+* Smaller chunks improve retrieval granularity; larger chunks retain more context
 * Respect total token limits (120K per batch)
 
 . **Query Embedding**
 +
-Use the same model for queries:
+Use the same model for queries (flat `list[str]`, auto chunking not needed):
 +
 [source,python]
 ----
 # Query with context model
 query_vector = vo.contextualized_embed(
-    inputs=[[query_text]],
-    model="voyage-context-3",
+    inputs=[query_text],
+    model="voyage-context-4",
     input_type="query"
 ).results[0].embeddings[0]
 ----
 
 For complete examples, see: `examples/PYTHON/voyageai-contextual-example.py`
 
-=== Reranking with VoyageAI (Two-Stage Retrieval)
+=== Reranking with VoyageAI by MongoDB (Two-Stage Retrieval)
 
-VoyageAI's reranking models (`rerank-2.5`, `rerank-2.5-lite`) enable sophisticated two-stage retrieval that significantly improves search accuracy. This approach combines the speed of Cassandra's vector search with the precision of cross-attention reranking.
+VoyageAI by MongoDB's reranking models (`rerank-2.5`, `rerank-2.5-lite`) enable sophisticated two-stage retrieval that significantly improves search accuracy. This approach combines the speed of Cassandra's vector search with the precision of cross-attention reranking.
 
 ==== What is Reranking?
 
@@ -1156,7 +1178,7 @@ User Query
 [Stage 1: Cassandra Vector Search]
   Fast ANN retrieval → 100 candidates (10-50ms)
     ↓
-[Stage 2: VoyageAI Reranking]
+[Stage 2: VoyageAI by MongoDB Reranking]
   Precise relevance scoring → Top 10 results (100-300ms)
     ↓
 Final Results (Total: 150-350ms)
@@ -1165,38 +1187,37 @@ Final Results (Total: 150-350ms)
 **Why Two Stages?**
 
 * **Stage 1 (Speed)**: Cassandra quickly narrows millions of documents to ~100 candidates
-* **Stage 2 (Accuracy)**: VoyageAI reranker precisely scores only the candidates
+* **Stage 2 (Accuracy)**: VoyageAI by MongoDB reranker precisely scores only the candidates
 * **Best of Both**: Fast retrieval + accurate ranking = production-ready search
 
-==== VoyageAI Rerank Models Comparison
+==== VoyageAI by MongoDB Rerank Models Comparison
 
-[cols="1,2,2"]
+All current rerank models share a 32,000 token context length and a maximum of
+1,000 documents per request.
+
+[cols="1,2,1,1"]
 |===
-|Model |rerank-2.5 |rerank-2.5-lite
+|Model |Use Case |Context Length |Status
 
-|**Accuracy**
-|Highest
-|High
+|rerank-3
+|Highest accuracy; recommended for most applications
+|32K tokens
+|Preview
 
-|**Speed**
-|Medium (~150ms/100docs)
-|Fast (~100ms/100docs)
+|rerank-3-lite
+|Latency-sensitive, high-throughput reranking
+|32K tokens
+|Preview
 
-|**Use Case**
-|Production accuracy-critical applications
-|High-throughput, latency-sensitive applications
+|rerank-2.5
+|Generalist, quality-optimized with instruction following
+|32K tokens
+|Current
 
-|**Cost**
-|Higher
-|Lower
-
-|**Context Length**
-|8K tokens per document
-|8K tokens per document
-
-|**Max Documents**
-|1000 per request
-|1000 per request
+|rerank-2.5-lite
+|Balances latency and quality
+|32K tokens
+|Current
 |===
 
 **When to Use Each Model:**
@@ -1223,7 +1244,7 @@ def two_stage_search(query: str, vector_candidates: int = 100, final_results: in
     # Stage 1: Generate query embedding
     query_embedding = vo.embed(
         texts=[query],
-        model="voyage-3.5-lite",
+        model="voyage-4-lite",
         input_type="query",
         output_dimension=1024
     ).embeddings[0]
@@ -1257,7 +1278,7 @@ def two_stage_search(query: str, vector_candidates: int = 100, final_results: in
     if not candidates:
         return []
 
-    # Stage 2: Rerank with VoyageAI
+    # Stage 2: Rerank with VoyageAI by MongoDB
     rerank_result = vo.rerank(
         query=query,
         documents=[c["content"] for c in candidates],
@@ -1464,7 +1485,7 @@ def monitored_search(query: str):
 
 . **Handle Long Documents**
 +
-VoyageAI rerankers support up to 8K tokens per document:
+VoyageAI by MongoDB rerankers support up to 32K tokens per document:
 +
 [source,python]
 ----
@@ -1473,11 +1494,11 @@ result = vo.rerank(
     query=query,
     documents=long_documents,
     model="rerank-2.5",
-    truncation=True  # Automatically truncates to 8K tokens
+    truncation=True  # Automatically truncates to the model's context length
 )
 
 # Or manually truncate
-def truncate_doc(text: str, max_tokens: int = 7000) -> str:
+def truncate_doc(text: str, max_tokens: int = 30000) -> str:
     """Truncate to approximate token limit."""
     # Rough approximation: 1 token ≈ 0.75 words
     max_words = int(max_tokens * 0.75)
@@ -1511,7 +1532,7 @@ See the following examples for production-ready implementations:
 
 Reranking adds minimal cost compared to embedding generation:
 
-* **Embedding**: ~$0.13 per 1M tokens (voyage-3.5-lite)
+* **Embedding**: ~$0.13 per 1M tokens (voyage-4-lite)
 * **Reranking**: ~$0.05 per 1M tokens (rerank-2.5)
 
 **Example Cost Analysis:**
@@ -1594,7 +1615,7 @@ def get_cached_embedding(text, threshold=0.95):
 
 == Cost Optimization
 
-=== VoyageAI Pricing Considerations
+=== VoyageAI by MongoDB Pricing Considerations
 
 * Costs are based on token consumption
 * Different models have different pricing tiers
@@ -1611,9 +1632,9 @@ Vector storage requirements:
 
 == Additional Resources
 
-* https://docs.voyageai.com/[VoyageAI Documentation]
+* https://docs.voyageai.com/[VoyageAI by MongoDB Documentation]
 * https://cassandra.apache.org/doc/latest/cassandra/developing/cql/indexing/sai/sai-overview.html[Cassandra SAI Documentation]
-* https://github.com/voyage-ai/voyageai-python[VoyageAI Python SDK GitHub]
+* https://github.com/voyage-ai/voyageai-python[VoyageAI by MongoDB Python SDK GitHub]
 * https://github.com/datastax/python-driver[Cassandra Python Driver GitHub]
 
 == Example Applications
@@ -1631,7 +1652,7 @@ Build e-commerce search that understands user intent:
 
 Implement semantic document search:
 
-* Embed document chunks with VoyageAI
+* Embed document chunks with VoyageAI by MongoDB
 * Store in Cassandra with metadata
 * Query using natural language questions
 * Retrieve most relevant document sections
@@ -1647,20 +1668,20 @@ Create personalized recommendations:
 
 == Conclusion
 
-Integrating VoyageAI with Apache Cassandra provides a powerful, scalable solution for semantic search applications. The BYOE model gives you flexibility to use best-in-class embeddings while leveraging Cassandra's proven distributed architecture.
+Integrating VoyageAI by MongoDB with Apache Cassandra provides a powerful, scalable solution for semantic search applications. The BYOE model gives you flexibility to use best-in-class embeddings while leveraging Cassandra's proven distributed architecture.
 
-VoyageAI offers multiple model families optimized for different use cases:
+VoyageAI by MongoDB offers multiple model families optimized for different use cases:
 
-* **Text Embeddings** (`voyage-3.5`, `voyage-3.5-lite`): Standard semantic search with improved performance
-* **Multimodal Embeddings** (`voyage-multimodal-3`, `voyage-multimodal-3.5`): Cross-modal search with text, images, and video
-* **Contextual Embeddings** (`voyage-context-3`): RAG applications with document context
-* **Reranking Models** (`rerank-2.5`, `rerank-2.5-lite`): Two-stage retrieval for improved accuracy
+* **Text Embeddings** (`voyage-4-large`, `voyage-4`, `voyage-4-lite`, `voyage-code-4`): Standard and code semantic search with improved performance
+* **Multimodal Embeddings** (`voyage-multimodal-3.5`): Cross-modal search with text, images, and video
+* **Contextual Embeddings** (`voyage-context-4`): RAG applications with document context and server-side auto chunking
+* **Reranking Models** (`rerank-3`, `rerank-3-lite`, `rerank-2.5`, `rerank-2.5-lite`): Two-stage retrieval for improved accuracy
 
 For complete working examples, refer to:
 
 **Main Examples:**
 
-* **Comprehensive VoyageAI Integration**: `/doc/modules/cassandra/examples/PYTHON/voyageai-cassandra-example.py`
+* **Comprehensive VoyageAI by MongoDB Integration**: `/doc/modules/cassandra/examples/PYTHON/voyageai-cassandra-example.py`
 ** Example A: Basic semantic search
 ** Example B: Token-aware batching (500 products)
 ** Example C: Two-stage retrieval with reranking
@@ -1671,4 +1692,4 @@ For complete working examples, refer to:
 **Additional Resources:**
 * **Reranking Guide**: `/doc/modules/cassandra/examples/PYTHON/RERANKING_GUIDE.md`
 
-For questions and support, consult the Apache Cassandra community and VoyageAI documentation.
+For questions and support, consult the Apache Cassandra community and VoyageAI by MongoDB documentation.

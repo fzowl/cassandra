@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-VoyageAI Contextual Embeddings (voyage-context-3) + Apache Cassandra Vector Search
+VoyageAI by MongoDB Contextual Embeddings (voyage-context-4) + Apache Cassandra Vector Search
 
-This example demonstrates REAL contextual retrieval using VoyageAI's voyage-context-3:
-1. Embedding document chunks with surrounding context for improved retrieval
+This example demonstrates REAL contextual retrieval using VoyageAI by MongoDB's voyage-context-4:
+1. Embedding full documents with server-side auto chunking (enable_auto_chunking)
 2. Comparing retrieval accuracy: with vs without context
 3. Storing contextual embeddings in Cassandra
 4. Implementing RAG (Retrieval-Augmented Generation) with contextual embeddings
@@ -11,13 +11,14 @@ This example demonstrates REAL contextual retrieval using VoyageAI's voyage-cont
 Prerequisites:
 - Python 3.8+
 - pip install voyageai cassandra-driver
-- VoyageAI API key (set as VOYAGE_API_KEY environment variable)
+- VoyageAI by MongoDB API key (set as VOYAGE_API_KEY environment variable)
 - Apache Cassandra 5.0+ with vector search support
 
-Key Features of voyage-context-3:
+Key Features of voyage-context-4:
 - Encodes both chunk-level details and global document context
 - Improved retrieval accuracy over standard embeddings
 - Seamless drop-in replacement for existing RAG pipelines
+- Server-side auto chunking: pass full documents as a flat list[str]
 - Supports documents up to 120K tokens total
 - Available dimensions: 256, 512, 1024 (default), 2048
 
@@ -48,10 +49,11 @@ except ImportError as e:
 class Config:
     """Configuration for contextual vector search."""
 
-    # VoyageAI settings
+    # VoyageAI by MongoDB settings
     VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
-    CONTEXTUAL_MODEL = "voyage-context-3"
+    CONTEXTUAL_MODEL = "voyage-context-4"
     EMBEDDING_DIMENSION = 1024  # Options: 256, 512, 1024, 2048
+    AUTO_CHUNK_SIZE = 32000  # Target chunk size in tokens for auto chunking (max 32000)
 
     # Cassandra settings
     CASSANDRA_HOSTS = os.getenv("CASSANDRA_HOSTS", "127.0.0.1").split(",")
@@ -134,12 +136,12 @@ SAMPLE_DOCUMENTS = [
 
 
 # ============================================================================
-# VoyageAI Contextual Embedder
+# VoyageAI by MongoDB Contextual Embedder
 # ============================================================================
 
 class VoyageContextualEmbedder:
     """
-    Handles contextual embedding generation using VoyageAI's voyage-context-3.
+    Handles contextual embedding generation using VoyageAI by MongoDB's voyage-context-4.
 
     This model embeds chunks while encoding context from other chunks in the same document,
     improving retrieval accuracy compared to isolated chunk embeddings.
@@ -148,54 +150,61 @@ class VoyageContextualEmbedder:
     def __init__(
         self,
         api_key: str,
-        model: str = "voyage-context-3",
-        dimension: int = 1024
+        model: str = "voyage-context-4",
+        dimension: int = 1024,
+        chunk_size: int = 32000
     ):
         """
-        Initialize VoyageAI contextual client.
+        Initialize VoyageAI by MongoDB contextual client.
 
         Args:
-            api_key: VoyageAI API key
-            model: Model name (voyage-context-3)
+            api_key: VoyageAI by MongoDB API key
+            model: Model name (voyage-context-4)
             dimension: Output dimension (256, 512, 1024, 2048)
+            chunk_size: Target chunk size in tokens for auto chunking (max 32000)
         """
         self.client = voyageai.Client(api_key=api_key)
         self.model = model
         self.dimension = dimension
-        print(f"✓ VoyageAI contextual client initialized")
+        self.chunk_size = chunk_size
+        print(f"✓ VoyageAI by MongoDB contextual client initialized")
         print(f"  Model: {model}")
         print(f"  Dimension: {dimension}")
         print(f"  Feature: Contextual chunk embeddings")
 
-    def embed_document_chunks_with_context(
+    def embed_document_with_context(
         self,
-        chunks: List[str],
+        document: str,
         input_type: str = "document"
-    ) -> List[List[float]]:
+    ) -> List[tuple]:
         """
-        Embed document chunks with context using voyage-context-3.
+        Embed a full document with context using voyage-context-4 auto chunking.
 
-        All chunks from the same document are passed together so the model
-        can encode context from the entire document into each chunk's embedding.
+        The full document is passed as a flat list[str] and Voyage splits it
+        server-side (enable_auto_chunking), encoding global document context into
+        each chunk's embedding. The backend-generated chunk texts are returned
+        alongside their embeddings.
 
         Args:
-            chunks: List of text chunks from a single document
+            document: Full document text (a single string)
             input_type: "document" or "query"
 
         Returns:
-            List of contextualized embeddings, one per chunk
+            List of (chunk_text, embedding) tuples, one per auto-generated chunk
         """
-        # Pass all chunks together in a list so they share context
+        # Pass the full document as a flat list[str]; Voyage auto-chunks it
         result = self.client.contextualized_embed(
-            inputs=[chunks],  # List of lists - one document with multiple chunks
+            inputs=[document],              # flat list[str] of full-document strings
             model=self.model,
             input_type=input_type,
-            output_dimension=self.dimension
+            output_dimension=self.dimension,
+            enable_auto_chunking=True,      # split each document server-side
+            chunk_size=self.chunk_size      # target chunk size in tokens (max 32000)
         )
 
-        # Extract embeddings from the result
-        embeddings = result.results[0].embeddings
-        return embeddings
+        # Auto chunking returns the generated chunk texts + their embeddings
+        doc_result = result.results[0]
+        return list(zip(doc_result.chunk_texts, doc_result.embeddings))
 
     def embed_document_chunks_without_context(
         self,
@@ -218,7 +227,7 @@ class VoyageContextualEmbedder:
         # Use standard embed API - each chunk is independent
         result = self.client.embed(
             texts=chunks,
-            model="voyage-3.5",  # Use voyage-3.5 for fair comparison
+            model="voyage-4",  # Use voyage-4 for fair comparison
             input_type=input_type,
             output_dimension=self.dimension
         )
@@ -235,8 +244,9 @@ class VoyageContextualEmbedder:
         Returns:
             Query embedding vector
         """
+        # Queries are embedded as a flat list[str] (auto chunking not needed)
         result = self.client.contextualized_embed(
-            inputs=[[query]],  # Single query
+            inputs=[query],  # flat list[str] with a single query
             model=self.model,
             input_type="query",
             output_dimension=self.dimension
@@ -446,7 +456,7 @@ def main():
     """Main application demonstrating contextual embeddings."""
 
     print("\n" + "="*80)
-    print("VoyageAI Contextual Embeddings (voyage-context-3) + Cassandra")
+    print("VoyageAI by MongoDB Contextual Embeddings (voyage-context-4) + Cassandra")
     print("="*80 + "\n")
 
     # Validate configuration
@@ -457,13 +467,14 @@ def main():
         return 1
 
     # Initialize components
-    print("1. Initializing VoyageAI contextual embedder...")
+    print("1. Initializing VoyageAI by MongoDB contextual embedder...")
     print("-" * 80)
 
     embedder = VoyageContextualEmbedder(
         api_key=Config.VOYAGE_API_KEY,
         model=Config.CONTEXTUAL_MODEL,
-        dimension=Config.EMBEDDING_DIMENSION
+        dimension=Config.EMBEDDING_DIMENSION,
+        chunk_size=Config.AUTO_CHUNK_SIZE
     )
 
     vector_store = ContextualVectorStore(
@@ -493,21 +504,23 @@ def main():
         for doc in SAMPLE_DOCUMENTS:
             doc_id = doc["doc_id"]
             doc_title = doc["title"]
-            chunks = doc["chunks"]
+            # Pass the full document; voyage-context-4 auto-chunks it server-side
+            full_text = "\n\n".join(doc["chunks"])
 
             print(f"\nProcessing: {doc_title}")
-            print(f"  Chunks: {len(chunks)}")
 
-            # Generate CONTEXTUAL embeddings
-            contextual_embeddings = embedder.embed_document_chunks_with_context(chunks)
-            print(f"  ✓ Generated {len(contextual_embeddings)} contextual embeddings")
+            # Generate CONTEXTUAL embeddings via auto chunking
+            contextual_pairs = embedder.embed_document_with_context(full_text)
+            chunk_texts = [text for text, _ in contextual_pairs]
+            contextual_embeddings = [emb for _, emb in contextual_pairs]
+            print(f"  ✓ Auto-chunked into {len(chunk_texts)} contextual embeddings")
 
-            # Generate STANDARD embeddings (for comparison)
-            standard_embeddings = embedder.embed_document_chunks_without_context(chunks)
+            # Generate STANDARD embeddings on the same chunks (for comparison)
+            standard_embeddings = embedder.embed_document_chunks_without_context(chunk_texts)
             print(f"  ✓ Generated {len(standard_embeddings)} standard embeddings")
 
             # Store contextual embeddings
-            for i, (chunk_text, embedding) in enumerate(zip(chunks, contextual_embeddings)):
+            for i, (chunk_text, embedding) in enumerate(zip(chunk_texts, contextual_embeddings)):
                 vector_store.insert_chunk(
                     keyspace=Config.CASSANDRA_KEYSPACE,
                     table_name="document_chunks_contextual",
@@ -519,7 +532,7 @@ def main():
                 )
 
             # Store standard embeddings
-            for i, (chunk_text, embedding) in enumerate(zip(chunks, standard_embeddings)):
+            for i, (chunk_text, embedding) in enumerate(zip(chunk_texts, standard_embeddings)):
                 vector_store.insert_chunk(
                     keyspace=Config.CASSANDRA_KEYSPACE,
                     table_name="document_chunks_standard",
@@ -586,7 +599,7 @@ def main():
         print("="*80)
 
         print("\nKey Features Demonstrated:")
-        print("✓ Real VoyageAI voyage-context-3 integration")
+        print("✓ Real VoyageAI by MongoDB voyage-context-4 integration")
         print("✓ Contextual chunk embeddings with global document context")
         print("✓ Side-by-side comparison with standard embeddings")
         print("✓ Improved retrieval accuracy for ambiguous chunks")
@@ -599,10 +612,10 @@ def main():
         print("- Knowledge bases with interconnected information")
 
         print("\nBest Practices:")
-        print("- Pass all chunks from same document together")
-        print("- Maintain chunk order for sequential context")
-        print("- Avoid overlapping chunks")
-        print("- Use input_type='document' for chunks, 'query' for searches")
+        print("- Pass full documents as a flat list[str] and let Voyage auto-chunk")
+        print("- Use enable_auto_chunking=True with chunk_size up to 32000 tokens")
+        print("- Store the returned chunk_texts alongside their embeddings")
+        print("- Use input_type='document' for documents, 'query' for searches")
 
         return 0
 
