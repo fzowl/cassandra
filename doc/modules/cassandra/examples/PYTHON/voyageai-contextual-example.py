@@ -1,25 +1,35 @@
 #!/usr/bin/env python3
 """
-VoyageAI Contextual Embeddings (voyage-context-3) + Apache Cassandra Vector Search
+VoyageAI by MongoDB Contextual Embeddings (voyage-context-4) + Apache Cassandra Vector Search
 
-This example demonstrates REAL contextual retrieval using VoyageAI's voyage-context-3:
+This example demonstrates REAL contextual retrieval using VoyageAI by MongoDB's
+voyage-context-4:
 1. Embedding document chunks with surrounding context for improved retrieval
 2. Comparing retrieval accuracy: with vs without context
 3. Storing contextual embeddings in Cassandra
 4. Implementing RAG (Retrieval-Augmented Generation) with contextual embeddings
 
+Note: VoyageAI is now part of MongoDB. The API, `voyageai` Python package, and
+model names are unchanged.
+
 Prerequisites:
 - Python 3.8+
 - pip install voyageai cassandra-driver
-- VoyageAI API key (set as VOYAGE_API_KEY environment variable)
+- VoyageAI by MongoDB API key (set as VOYAGE_API_KEY environment variable)
 - Apache Cassandra 5.0+ with vector search support
 
-Key Features of voyage-context-3:
+Key Features of voyage-context-4:
 - Encodes both chunk-level details and global document context
 - Improved retrieval accuracy over standard embeddings
 - Seamless drop-in replacement for existing RAG pipelines
 - Supports documents up to 120K tokens total
 - Available dimensions: 256, 512, 1024 (default), 2048
+
+contextualized_embed inputs (per the official spec) accept both formats:
+- List[List[str]]: each inner list is one document's pre-chunked text
+- List[str]: a flat list (use enable_auto_chunking=True for documents; pass
+  query strings directly for queries)
+Reference: https://docs.voyageai.com/docs/contextualized-chunk-embeddings
 
 Author: Apache Cassandra Documentation Team
 License: Apache 2.0
@@ -48,9 +58,9 @@ except ImportError as e:
 class Config:
     """Configuration for contextual vector search."""
 
-    # VoyageAI settings
+    # VoyageAI by MongoDB settings
     VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
-    CONTEXTUAL_MODEL = "voyage-context-3"
+    CONTEXTUAL_MODEL = "voyage-context-4"
     EMBEDDING_DIMENSION = 1024  # Options: 256, 512, 1024, 2048
 
     # Cassandra settings
@@ -139,7 +149,7 @@ SAMPLE_DOCUMENTS = [
 
 class VoyageContextualEmbedder:
     """
-    Handles contextual embedding generation using VoyageAI's voyage-context-3.
+    Handles contextual embedding generation using VoyageAI by MongoDB's voyage-context-4.
 
     This model embeds chunks while encoding context from other chunks in the same document,
     improving retrieval accuracy compared to isolated chunk embeddings.
@@ -148,21 +158,21 @@ class VoyageContextualEmbedder:
     def __init__(
         self,
         api_key: str,
-        model: str = "voyage-context-3",
+        model: str = "voyage-context-4",
         dimension: int = 1024
     ):
         """
-        Initialize VoyageAI contextual client.
+        Initialize VoyageAI by MongoDB contextual client.
 
         Args:
-            api_key: VoyageAI API key
-            model: Model name (voyage-context-3)
+            api_key: VoyageAI by MongoDB API key
+            model: Model name (voyage-context-4)
             dimension: Output dimension (256, 512, 1024, 2048)
         """
         self.client = voyageai.Client(api_key=api_key)
         self.model = model
         self.dimension = dimension
-        print(f"✓ VoyageAI contextual client initialized")
+        print(f"✓ VoyageAI by MongoDB contextual client initialized")
         print(f"  Model: {model}")
         print(f"  Dimension: {dimension}")
         print(f"  Feature: Contextual chunk embeddings")
@@ -173,7 +183,7 @@ class VoyageContextualEmbedder:
         input_type: str = "document"
     ) -> List[List[float]]:
         """
-        Embed document chunks with context using voyage-context-3.
+        Embed document chunks with context using voyage-context-4.
 
         All chunks from the same document are passed together so the model
         can encode context from the entire document into each chunk's embedding.
@@ -185,9 +195,10 @@ class VoyageContextualEmbedder:
         Returns:
             List of contextualized embeddings, one per chunk
         """
-        # Pass all chunks together in a list so they share context
+        # Pass all chunks together so they share context.
+        # inputs is List[List[str]] here: one inner list == one document's chunks.
         result = self.client.contextualized_embed(
-            inputs=[chunks],  # List of lists - one document with multiple chunks
+            inputs=[chunks],  # List[List[str]] - one document with multiple chunks
             model=self.model,
             input_type=input_type,
             output_dimension=self.dimension
@@ -218,7 +229,7 @@ class VoyageContextualEmbedder:
         # Use standard embed API - each chunk is independent
         result = self.client.embed(
             texts=chunks,
-            model="voyage-3.5",  # Use voyage-3.5 for fair comparison
+            model="voyage-4",  # Use voyage-4 for fair comparison
             input_type=input_type,
             output_dimension=self.dimension
         )
@@ -235,8 +246,11 @@ class VoyageContextualEmbedder:
         Returns:
             Query embedding vector
         """
+        # A single query uses the flat List[str] form. The nested
+        # List[List[str]] form (inputs=[[query]]) is equivalent and also
+        # accepted per the official contextualized_embed spec.
         result = self.client.contextualized_embed(
-            inputs=[[query]],  # Single query
+            inputs=[query],  # List[str] - one query string
             model=self.model,
             input_type="query",
             output_dimension=self.dimension
@@ -446,7 +460,7 @@ def main():
     """Main application demonstrating contextual embeddings."""
 
     print("\n" + "="*80)
-    print("VoyageAI Contextual Embeddings (voyage-context-3) + Cassandra")
+    print("VoyageAI by MongoDB Contextual Embeddings (voyage-context-4) + Cassandra")
     print("="*80 + "\n")
 
     # Validate configuration
@@ -457,7 +471,7 @@ def main():
         return 1
 
     # Initialize components
-    print("1. Initializing VoyageAI contextual embedder...")
+    print("1. Initializing VoyageAI by MongoDB contextual embedder...")
     print("-" * 80)
 
     embedder = VoyageContextualEmbedder(
@@ -586,7 +600,7 @@ def main():
         print("="*80)
 
         print("\nKey Features Demonstrated:")
-        print("✓ Real VoyageAI voyage-context-3 integration")
+        print("✓ Real VoyageAI by MongoDB voyage-context-4 integration")
         print("✓ Contextual chunk embeddings with global document context")
         print("✓ Side-by-side comparison with standard embeddings")
         print("✓ Improved retrieval accuracy for ambiguous chunks")

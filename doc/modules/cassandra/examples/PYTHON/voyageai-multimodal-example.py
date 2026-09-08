@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 """
-VoyageAI Multimodal Embeddings (voyage-multimodal-3.5) + Apache Cassandra Vector Search
+VoyageAI by MongoDB Multimodal Embeddings (voyage-multimodal-3.5) + Apache Cassandra Vector Search
 
-This example demonstrates REAL multimodal vector search using VoyageAI's multimodal models:
+This example demonstrates REAL multimodal vector search using VoyageAI by MongoDB's
+multimodal models:
 1. Embedding text, images, and video together in a shared vector space
 2. Storing multimodal vectors in Cassandra (same vector space for all modalities)
 3. Cross-modal similarity search (text query -> image results, image query -> text results)
 4. Hybrid search combining text, images, and metadata filters
 
+Note: VoyageAI is now part of MongoDB. The API, `voyageai` Python package, and
+model names are unchanged.
+
 Prerequisites:
 - Python 3.8+
 - pip install 'voyageai>=0.3.6' cassandra-driver pillow requests
-- VoyageAI API key (set as VOYAGE_API_KEY environment variable)
+- VoyageAI by MongoDB API key (set as VOYAGE_API_KEY environment variable)
 - Apache Cassandra 5.0+ with vector search support
 - Sample images (or URLs) for demonstration
 
 Supported Multimodal Models:
 
-voyage-multimodal-3.5 (Preview - Default):
+voyage-multimodal-3.5 (Recommended - Default):
 - Supports text, images, AND video in same vector space
 - Variable dimensions: 256, 512, 1024 (default), 2048
 - 32,000 token context length
@@ -25,7 +29,7 @@ voyage-multimodal-3.5 (Preview - Default):
 - Video: max 20MB (requires voyageai >= 0.3.6)
 - Token pricing: 560 image pixels = 1 token, 1120 video pixels = 1 token
 
-voyage-multimodal-3:
+voyage-multimodal-3 (Legacy):
 - Supports text and images (no video)
 - Fixed 1024-dimensional embeddings
 - 32,000 token context length
@@ -64,9 +68,10 @@ except ImportError as e:
 class Config:
     """Configuration for multimodal vector search."""
 
-    # VoyageAI settings
+    # VoyageAI by MongoDB settings
     VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
-    # Model options: voyage-multimodal-3 (fixed 1024D), voyage-multimodal-3.5 (256/512/1024/2048D)
+    # Model options: voyage-multimodal-3.5 (256/512/1024/2048D, recommended),
+    #                voyage-multimodal-3 (fixed 1024D, legacy)
     MULTIMODAL_MODEL = "voyage-multimodal-3.5"
     # Dimension options for voyage-multimodal-3.5: 256, 512, 1024 (default), 2048
     # Note: voyage-multimodal-3 only supports fixed 1024D
@@ -152,21 +157,21 @@ SAMPLE_MEDIA_ITEMS = [
 
 class VoyageMultimodalEmbedder:
     """
-    Handles multimodal embedding generation using VoyageAI's multimodal models.
+    Handles multimodal embedding generation using VoyageAI by MongoDB's multimodal models.
 
     Supported models:
-    - voyage-multimodal-3.5: Text + Images + Video, variable dimensions (256/512/1024/2048)
-    - voyage-multimodal-3: Text + Images only, fixed 1024-dimensional vectors
+    - voyage-multimodal-3.5 (recommended): Text + Images + Video, variable dimensions (256/512/1024/2048)
+    - voyage-multimodal-3 (legacy): Text + Images only, fixed 1024-dimensional vectors
 
     Both models embed content into the same vector space, enabling cross-modal similarity search.
     """
 
     def __init__(self, api_key: str, model: str = "voyage-multimodal-3.5", dimension: int = 1024):
         """
-        Initialize VoyageAI multimodal client.
+        Initialize VoyageAI by MongoDB multimodal client.
 
         Args:
-            api_key: VoyageAI API key
+            api_key: VoyageAI by MongoDB API key
             model: Model name (voyage-multimodal-3.5 or voyage-multimodal-3)
             dimension: Output dimension (256, 512, 1024, 2048). Only for voyage-multimodal-3.5.
                        voyage-multimodal-3 always produces 1024-dim vectors.
@@ -183,7 +188,7 @@ class VoyageMultimodalEmbedder:
             self.dimension = dimension
 
         modalities = "Text + Images + Video" if "3.5" in model else "Text + Images"
-        print(f"✓ VoyageAI multimodal client initialized")
+        print(f"✓ VoyageAI by MongoDB multimodal client initialized")
         print(f"  Model: {model}")
         print(f"  Dimension: {self.dimension}")
         print(f"  Supports: {modalities} in same vector space")
@@ -209,7 +214,7 @@ class VoyageMultimodalEmbedder:
 
     def embed_text(self, text: str, input_type: str = "document") -> List[float]:
         """
-        Embed text using VoyageAI multimodal model.
+        Embed text using VoyageAI by MongoDB multimodal model.
 
         Args:
             text: Text to embed
@@ -232,7 +237,7 @@ class VoyageMultimodalEmbedder:
 
     def embed_image(self, image: Image.Image, caption: Optional[str] = None) -> List[float]:
         """
-        Embed image (optionally with caption) using VoyageAI multimodal model.
+        Embed image (optionally with caption) using VoyageAI by MongoDB multimodal model.
 
         Args:
             image: PIL Image object
@@ -456,7 +461,7 @@ class MultimodalVectorStore:
         """
         Search media items using vector similarity.
 
-        Thanks to voyage-multimodal-3, this works for:
+        Thanks to voyage-multimodal-3.5, this works for:
         - Text query -> Text results
         - Text query -> Image results (cross-modal)
         - Image query -> Text results (cross-modal)
@@ -522,7 +527,7 @@ def main():
     """Main application demonstrating multimodal vector search."""
 
     print("\n" + "="*80)
-    print(f"VoyageAI Multimodal ({Config.MULTIMODAL_MODEL}) + Cassandra Vector Search")
+    print(f"VoyageAI by MongoDB Multimodal ({Config.MULTIMODAL_MODEL}) + Cassandra Vector Search")
     print("="*80 + "\n")
 
     # Validate configuration
@@ -533,7 +538,7 @@ def main():
         return 1
 
     # Initialize components
-    print("1. Initializing VoyageAI multimodal embedder...")
+    print("1. Initializing VoyageAI by MongoDB multimodal embedder...")
     print("-" * 80)
 
     embedder = VoyageMultimodalEmbedder(
@@ -666,7 +671,7 @@ def main():
         print("="*80)
 
         print("\nKey Features Demonstrated:")
-        print(f"✓ Real VoyageAI {Config.MULTIMODAL_MODEL} integration")
+        print(f"✓ Real VoyageAI by MongoDB {Config.MULTIMODAL_MODEL} integration")
         print(f"✓ Text and images embedded in same {Config.EMBEDDING_DIMENSION}-dim vector space")
         print("✓ Cross-modal search (text queries find images, vice versa)")
         print("✓ Single vector column for both modalities")
