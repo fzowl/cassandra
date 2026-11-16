@@ -78,6 +78,7 @@
 // *** xref:cassandra:vector-search/quickstarts.adoc[]
 *** xref:cassandra:getting-started/vector-search-quickstart.adoc[]
 *** xref:cassandra:vector-search/vector-search-working-with.adoc[]
+*** xref:cassandra:developing/integrations/voyageai-integration-guide.adoc[Voyage AI by MongoDB integration]
 // **** xref:getting-started/sai-quickstart.adoc[]
 
 ** xref:cassandra:managing/index.adoc[]
